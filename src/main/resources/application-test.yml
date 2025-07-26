@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT54332}/${DB_NAME:iam_test_db}
+    username: ${POSTGRES_USER:iam_user}
+    password: ${POSTGRES_PASSWORD:test_password}
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+  cloud:
+    vault:
+      enabled: false

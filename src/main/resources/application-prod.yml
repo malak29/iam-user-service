@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: vault:secret/database #url
+    username: vault:secret/database #username
+    password: vault:secret/database #password
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  cloud:
+    vault:
+      enabled: true
+      host: ${VAULT_HOST:localhost}
+      port: ${VAULT_PORT:8200}
+      scheme: http
+      authentication: TOKEN
+      token: ${VAULT_TOKEN}

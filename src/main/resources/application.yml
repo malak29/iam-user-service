@@ -1,0 +1,17 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# JWT configuration
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key}
+  expiration: 86400000 # 24hrs
+
+logging:
+  level:
+      com.iam.user: DEBUG
