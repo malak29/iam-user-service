@@ -29,7 +29,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findUsersByUserStatusId(Integer userStatusId);
 
-    @Query("SELECT u FROM User u WHERE u.orgId = :orgId AND u.userStatusId = 1")
+    @Query("SELECT u FROM users u WHERE u.orgId = :orgId AND u.userStatusId = 1")
     List<User> findActiveUsersByOrgId(@Param("orgId") Integer orgId);
 
     List<User> findUsersByUserTypeId(Integer userTypeId);
