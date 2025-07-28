@@ -2,7 +2,7 @@ package com.iam.user.service;
 
 import com.iam.user.dto.CreateUserRequest;
 import com.iam.user.dto.UpdateUserRequest;
-import com.iam.user.model.User;
+import com.iam.common.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;

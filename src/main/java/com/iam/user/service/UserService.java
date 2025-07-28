@@ -5,8 +5,8 @@ import com.iam.user.config.Messages;
 import com.iam.user.dto.CreateUserRequest;
 import com.iam.user.dto.UpdateUserRequest;
 import com.iam.user.dto.UserResponse;
-import com.iam.user.model.User;
-import com.iam.user.repository.UserRepository;
+import com.iam.common.model.User;
+import com.iam.common.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -75,7 +75,7 @@ public class UserService {
         log.debug("Fetching user by email: {}", email);
 
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findUserByEmail(email)
                     .orElseThrow(() -> {
                         log.warn("User not found with email: {}", email);
                         return new CustomExceptions.UserNotFoundException(

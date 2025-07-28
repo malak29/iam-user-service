@@ -24,7 +24,7 @@ public class UserResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public UserResponse(com.iam.user.model.User user) {
+    public UserResponse(com.iam.common.model.User user) {
         this.userId = user.getUserId();
         this.email = user.getEmail();
         this.username = user.getUsername();
