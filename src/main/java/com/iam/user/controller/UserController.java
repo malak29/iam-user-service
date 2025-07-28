@@ -4,6 +4,7 @@ import com.iam.common.response.ApiResponse;
 import com.iam.user.config.ApiRoutes;
 import com.iam.user.config.Messages;
 import com.iam.user.dto.CreateUserRequest;
+import com.iam.user.dto.UpdateUserRequest;
 import com.iam.user.dto.UserResponse;
 import com.iam.user.service.UserService;
 import jakarta.validation.Valid;
@@ -25,28 +26,41 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<UserResponse>> createUser (@Valid @RequestBody CreateUserRequest request) {
-        log.info("Creating user with email: {}", request.getEmail());
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
+        log.info("Received request to create user with email: {}", request.getEmail());
+
         UserResponse userResponse = userService.createUser(request);
+
+        log.info("User creation request completed successfully for email: {}", request.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(userResponse, "User created successfully"));
+                .body(ApiResponse.success(userResponse, Messages.USER_CREATED_SUCCESS));
     }
 
     @GetMapping(ApiRoutes.USER_BY_ID)
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById (@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID userId) {
         log.debug("Received request to get user by ID: {}", userId);
 
         UserResponse userResponse = userService.getUserById(userId);
 
-        log.debug("User retrieval by ID completed Successfully: {}", userId);
-        return  ResponseEntity.ok(ApiResponse.success(userResponse, Messages.USER_RETRIEVED_SUCCESS));
+        log.debug("User retrieval by ID completed successfully: {}", userId);
+        return ResponseEntity.ok(ApiResponse.success(userResponse, Messages.USER_RETRIEVED_SUCCESS));
+    }
+
+    @GetMapping(ApiRoutes.USER_BY_EMAIL)
+    public ResponseEntity<ApiResponse<UserResponse>> getUserByEmail(@PathVariable String email) {
+        log.debug("Received request to get user by email: {}", email);
+
+        UserResponse userResponse = userService.getUserByEmail(email);
+
+        log.debug("User retrieval by email completed successfully: {}", email);
+        return ResponseEntity.ok(ApiResponse.success(userResponse, Messages.USER_RETRIEVED_SUCCESS));
     }
 
     @GetMapping(ApiRoutes.USERS_BY_ORGANIZATION)
     public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByOrganization(@PathVariable Integer orgId) {
         log.debug("Received request to get users by organization: {}", orgId);
 
-        List<UserResponse> users = userService.getUsersByOrgId(orgId);
+        List<UserResponse> users = userService.getUsersByOrganization(orgId);
 
         log.debug("Users retrieval by organization completed. Found {} users for org: {}", users.size(), orgId);
         return ResponseEntity.ok(ApiResponse.success(users, Messages.USERS_RETRIEVED_SUCCESS));
@@ -65,7 +79,7 @@ public class UserController {
     @PutMapping(ApiRoutes.USER_BY_ID)
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID userId,
-            @Valid @RequestBody CreateUserRequest request) {
+            @Valid @RequestBody UpdateUserRequest request) {
         log.info("Received request to update user: {}", userId);
 
         UserResponse userResponse = userService.updateUser(userId, request);
@@ -83,5 +97,4 @@ public class UserController {
         log.info("User deletion completed successfully: {}", userId);
         return ResponseEntity.ok(ApiResponse.success(Messages.USER_DELETED_SUCCESS));
     }
-
 }

@@ -3,12 +3,12 @@ package com.iam.user.service;
 import com.iam.common.exception.CustomExceptions;
 import com.iam.user.config.Messages;
 import com.iam.user.dto.CreateUserRequest;
+import com.iam.user.dto.UpdateUserRequest;
 import com.iam.user.dto.UserResponse;
 import com.iam.user.model.User;
 import com.iam.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,147 +23,158 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserValidationService userValidationService;
+    private final UserMappingService userMappingService;
 
-    public UserResponse createUser (CreateUserRequest request) {
-
+    public UserResponse createUser(CreateUserRequest request) {
         log.info("Attempting to create user with email: {}", request.getEmail());
 
         try {
-            validateUserCreation(request);
+            userValidationService.validateUserCreation(request);
 
-            User user = buildUserFromRequest(request);
+            User user = userMappingService.buildUserFromRequest(request);
             User savedUser = userRepository.save(user);
 
-            log.info("User created successfully with ID: {} and email: {}", savedUser.getUserId(), savedUser.getEmail());
+            log.info("User created successfully with ID: {} and email: {}",
+                    savedUser.getUserId(), savedUser.getEmail());
 
             return new UserResponse(savedUser);
+
         } catch (Exception ex) {
-            log.error("Failed to create user with email: {} . Error: {}", request.getEmail(), ex.getMessage());
+            log.error("Failed to create user with email: {}. Error: {}",
+                    request.getEmail(), ex.getMessage());
             throw ex;
         }
     }
 
     @Transactional(readOnly = true)
-    public UserResponse getUserById (UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomExceptions.UserNotFoundException(
-                        "User not found with ID: " + userId
-                ));
-        return new UserResponse(user);
+    public UserResponse getUserById(UUID userId) {
+        log.debug("Fetching user by ID: {}", userId);
+
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.warn("User not found with ID: {}", userId);
+                        return new CustomExceptions.UserNotFoundException(
+                                String.format(Messages.USER_NOT_FOUND, userId));
+                    });
+
+            log.debug("User retrieved successfully: {}", userId);
+            return new UserResponse(user);
+
+        } catch (CustomExceptions.UserNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Error retrieving user by ID: {}. Error: {}", userId, ex.getMessage());
+            throw new RuntimeException(Messages.INTERNAL_SERVER_ERROR, ex);
+        }
     }
 
     @Transactional(readOnly = true)
-    public UserResponse  getUserByEmail (String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomExceptions.UserNotFoundException(
-                        "User not found with email: " + email
-                ));
-        return new UserResponse(user);
+    public UserResponse getUserByEmail(String email) {
+        log.debug("Fetching user by email: {}", email);
+
+        try {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> {
+                        log.warn("User not found with email: {}", email);
+                        return new CustomExceptions.UserNotFoundException(
+                                String.format(Messages.USER_NOT_FOUND_EMAIL, email));
+                    });
+
+            log.debug("User retrieved successfully by email: {}", email);
+            return new UserResponse(user);
+
+        } catch (CustomExceptions.UserNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Error retrieving user by email: {}. Error: {}", email, ex.getMessage());
+            throw new RuntimeException(Messages.INTERNAL_SERVER_ERROR, ex);
+        }
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> getUsersByOrgId (Integer orgId){
-        List<User> users = userRepository.findUsersByOrgId(orgId);
-        return users.stream()
-                .map(UserResponse::new)
-                .collect(Collectors.toList());
+    public List<UserResponse> getUsersByOrganization(Integer orgId) {
+        log.debug("Fetching users for organization: {}", orgId);
+
+        try {
+            List<User> users = userRepository.findUsersByOrgId(orgId);
+            log.debug("Found {} users for organization: {}", users.size(), orgId);
+
+            return users.stream()
+                    .map(UserResponse::new)
+                    .collect(Collectors.toList());
+
+        } catch (Exception ex) {
+            log.error("Error retrieving users for organization: {}. Error: {}", orgId, ex.getMessage());
+            throw new RuntimeException(Messages.INTERNAL_SERVER_ERROR, ex);
+        }
     }
 
     @Transactional(readOnly = true)
     public List<UserResponse> getUsersByDepartment(Integer departmentId) {
-        List<User> users = userRepository.findUsersByDepartmentId(departmentId);
-        return users.stream()
-                .map(UserResponse::new)
-                .collect(Collectors.toList());
+        log.debug("Fetching users for department: {}", departmentId);
+
+        try {
+            List<User> users = userRepository.findUsersByDepartmentId(departmentId);
+            log.debug("Found {} users for department: {}", users.size(), departmentId);
+
+            return users.stream()
+                    .map(UserResponse::new)
+                    .collect(Collectors.toList());
+
+        } catch (Exception ex) {
+            log.error("Error retrieving users for department: {}. Error: {}", departmentId, ex.getMessage());
+            throw new RuntimeException(Messages.INTERNAL_SERVER_ERROR, ex);
+        }
     }
 
-    public UserResponse updateUser(UUID userId, CreateUserRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomExceptions.UserNotFoundException(
-                        "User not found with ID: " + userId
-                ));
+    public UserResponse updateUser(UUID userId, UpdateUserRequest request) {
+        log.info("Attempting to update user with partial data: {}", userId);
 
-        user.setEmail(request.getEmail());
-        user.setUsername(request.getUsername());
-        user.setName(request.getName());
-        user.setOrgId(request.getOrgId());
-        user.setDepartmentId(request.getDepartmentId());
-        user.setUserTypeId(request.getUserTypeId());
-        user.setUserStatusId(request.getUserStatusId());
-        user.setAuthTypeId(request.getAuthTypeId());
+        try {
+            User existingUser = userRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.warn("Cannot update - user not found: {}", userId);
+                        return new CustomExceptions.UserNotFoundException(
+                                String.format(Messages.USER_NOT_FOUND, userId));
+                    });
 
-        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            user.setHashedPassword(passwordEncoder.encode(request.getPassword()));
+            userValidationService.validatePartialUserUpdate(request, existingUser);
+            userMappingService.updateUserFieldsPartial(existingUser, request);
+
+            User updatedUser = userRepository.save(existingUser);
+            log.info("User updated successfully with partial data: {}", userId);
+
+            return new UserResponse(updatedUser);
+
+        } catch (CustomExceptions.UserNotFoundException | CustomExceptions.ValidationException |
+                 CustomExceptions.EmailAlreadyExistsException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Error updating user: {}. Error: {}", userId, ex.getMessage());
+            throw new RuntimeException(Messages.INTERNAL_SERVER_ERROR, ex);
         }
-
-        User updatedUser = userRepository.save(user);
-        log.info("User successfully updated: {}", userId);
-
-        return new UserResponse(updatedUser);
     }
 
     public void deleteUser(UUID userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new CustomExceptions.UserNotFoundException(
-                    "User not found with ID: " + userId);
-        }
+        log.info("Attempting to delete user: {}", userId);
 
-        userRepository.deleteById(userId);
-        log.info("User deleted successfully: {}", userId);
-    }
+        try {
+            if (!userRepository.existsById(userId)) {
+                log.warn("Cannot delete - user not found: {}", userId);
+                throw new CustomExceptions.UserNotFoundException(
+                        String.format(Messages.USER_NOT_FOUND, userId));
+            }
 
-    private void validateUserCreation(CreateUserRequest request) {
-        warnAndThrowExceptionForEmail("creation", request.getEmail());
+            userRepository.deleteById(userId);
+            log.info("User deleted successfully: {}", userId);
 
-        if (userRepository.existsByUsername(request.getUsername())) {
-            warnAndThrowExceptionForUsername("creation", request.getUsername());
-        }
-    }
-
-    private void validateUserUpdate(CreateUserRequest request, User existingUser) {
-        warnAndThrowExceptionForEmail("update", request.getEmail());
-
-        if (!existingUser.getUsername().equals(request.getUsername()) && userRepository.existsByUsername(request.getUsername())) {
-            warnAndThrowExceptionForUsername("update", request.getUsername());
+        } catch (CustomExceptions.UserNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Error deleting user: {}. Error: {}", userId, ex.getMessage());
+            throw new RuntimeException(Messages.INTERNAL_SERVER_ERROR, ex);
         }
     }
-
-    private void warnAndThrowExceptionForEmail (String eventName, String email) {
-        if (userRepository.existsByEmail(email)) {
-            log.warn("Email already exist during {}: {}", eventName, email);
-            throw new CustomExceptions.EmailAlreadyExistsException(
-                    String.format(Messages.EMAIL_ALREADY_EXISTS, email)
-            );
-        }
-    }
-
-    private void warnAndThrowExceptionForUsername (String eventName, String username) {
-        log.warn("Username already exists during {}: {}", eventName, username);
-        throw new CustomExceptions.ValidationException(
-                String.format(Messages.USERNAME_ALREADY_EXISTS, username)
-        );
-    }
-
-    private User buildUserFromRequest(CreateUserRequest request) {
-        User user = new User();
-        updateUserFieldsFromRequest(user, request);
-        return user;
-    }
-
-    private void updateUserFieldsFromRequest(User user, CreateUserRequest request) {
-        user.setEmail(request.getEmail());
-        user.setUsername(request.getUsername());
-        user.setName(request.getName());
-        user.setOrgId(request.getOrgId());
-        user.setDepartmentId(request.getDepartmentId());
-        user.setUserTypeId(request.getUserTypeId());
-        user.setUserStatusId(request.getUserStatusId());
-        user.setAuthTypeId(request.getAuthTypeId());
-
-        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            user.setHashedPassword(passwordEncoder.encode(request.getPassword()));
-        }
-    }
-
 }
