@@ -1,13 +1,8 @@
 spring:
-  datasource:
-    url: vault:secret/database #url
-    username: vault:secret/database #username
-    password: vault:secret/database #password
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   cloud:
     vault:

@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Service
 @RequiredArgsConstructor
@@ -15,30 +17,31 @@ public class UserMappingService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public User buildUserFromRequest(CreateUserRequest request) {
-        User user = new User();
-        updateUserFieldsFromCreateRequest(user, request);
-        return user;
+    public Mono<User> buildUserFromRequest(CreateUserRequest request) {
+        return Mono.fromCallable(() -> {
+            User user = new User();
+            updateUserFieldsFromCreateRequest(user, request);
+            return user;
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    public void updateUserFields(User user, CreateUserRequest request) {
-        updateUserFieldsFromCreateRequest(user, request);
+    public Mono<User> updateUserFieldsPartial(User user, UpdateUserRequest request) {
+        return Mono.fromCallable(() -> {
+            updateFieldIfNotNull(user::setEmail, request.getEmail());
+            updateFieldIfNotNull(user::setUsername, request.getUsername());
+            updateFieldIfNotNull(user::setName, request.getName());
+            updateFieldIfNotNull(user::setOrgId, request.getOrgId());
+            updateFieldIfNotNull(user::setDepartmentId, request.getDepartmentId());
+            updateFieldIfNotNull(user::setUserTypeId, request.getUserTypeId());
+            updateFieldIfNotNull(user::setUserStatusId, request.getUserStatusId());
+            updateFieldIfNotNull(user::setAuthTypeId, request.getAuthTypeId());
+
+            updatePasswordIfNotEmpty(user, request.getPassword());
+            return user;
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    public void updateUserFieldsPartial(User user, UpdateUserRequest request) {
-        updateFieldIfNotNull(user::setEmail, request.getEmail());
-        updateFieldIfNotNull(user::setUsername, request.getUsername());
-        updateFieldIfNotNull(user::setName, request.getName());
-        updateFieldIfNotNull(user::setOrgId, request.getOrgId());
-        updateFieldIfNotNull(user::setDepartmentId, request.getDepartmentId());
-        updateFieldIfNotNull(user::setUserTypeId, request.getUserTypeId());
-        updateFieldIfNotNull(user::setUserStatusId, request.getUserStatusId());
-        updateFieldIfNotNull(user::setAuthTypeId, request.getAuthTypeId());
-
-        updatePasswordIfNotEmpty(user, request.getPassword());
-    }
-
-    // Private helper methods
+    // Private helper methods (unchanged)
     private void updateUserFieldsFromCreateRequest(User user, CreateUserRequest request) {
         user.setEmail(request.getEmail());
         user.setUsername(request.getUsername());
