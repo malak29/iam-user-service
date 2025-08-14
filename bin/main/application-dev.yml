@@ -1,0 +1,10 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/iam_db
+    username: iam_malak
+    password: Malak123
+
+  # Remove JPA config - not needed for R2DBC
+  cloud:
+    vault:
+      enabled: false

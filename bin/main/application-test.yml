@@ -1,0 +1,9 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:iam_test_db}
+    username: ${POSTGRES_USER:iam_user}
+    password: ${POSTGRES_PASSWORD:test_password}
+
+  cloud:
+    vault:
+      enabled: false
